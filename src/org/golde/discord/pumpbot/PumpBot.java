@@ -1,10 +1,11 @@
 package org.golde.discord.pumpbot;
 
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
-import org.golde.discord.pumpbot.commands.DMTest;
+import org.golde.discord.pumpbot.commands.CommandAddAlts;
+import org.golde.discord.pumpbot.states.UserState;
 import org.golde.java.discordbotapi.DiscordAPIException;
 import org.golde.java.discordbotapi.DiscordBot;
 import org.golde.java.discordbotapi.DiscordCommand;
@@ -15,6 +16,8 @@ import sx.blah.discord.handle.obj.IPrivateChannel;
 import sx.blah.discord.handle.obj.IUser;
 
 public class PumpBot extends DiscordBot {
+	
+	public HashMap<Long, UserState> userStates = new HashMap<Long, UserState>();
 	
 	long CHANNEL_DEBUG = 402680152888442881L;
 	
@@ -29,7 +32,7 @@ public class PumpBot extends DiscordBot {
 		
 		if(channel instanceof IPrivateChannel) {
 			//is a DM
-			String[] lines = msg.getContent().split("\\r?\\n");
+			/*String[] lines = msg.getContent().split("\\r?\\n");
 			List<String> alts = new ArrayList<String>();
 			for(String line:lines) {
 				if(line.contains(":") && line.length() > 10) {
@@ -39,7 +42,14 @@ public class PumpBot extends DiscordBot {
 			if(alts.size() > 0) {
 				channel.sendMessage("Thanks for the " + alts.size() + " alts!");
 			}
-			dbg.sendMessage(user.mention() + " added " + alts.size() + " alts via DM!");
+			dbg.sendMessage(user.mention() + " added " + alts.size() + " alts via DM!");*/
+			
+			//Any spam will be illiminated via this line
+			if(userStates.containsKey(user.getLongID())) {
+				UserState userState = userStates.get(user.getLongID());
+				userState.recieved(user, channel, msg.getContent());
+			}
+			
 		}
 		
 	}
@@ -62,7 +72,7 @@ public class PumpBot extends DiscordBot {
 
 	@Override
 	public void registerCommands(List<DiscordCommand> cmds) throws DiscordAPIException {
-		cmds.add(new DMTest());
+		cmds.add(new CommandAddAlts());
 	}
 
 }
