@@ -1,7 +1,7 @@
 package org.golde.discord.pumpbot.commands;
 
 import org.golde.discord.pumpbot.Main;
-import org.golde.discord.pumpbot.states.UserState;
+import org.golde.discord.pumpbot.UserState;
 import org.golde.java.discordbotapi.DiscordAPIException;
 import org.golde.java.discordbotapi.DiscordCommand;
 

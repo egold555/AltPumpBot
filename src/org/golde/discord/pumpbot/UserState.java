@@ -1,0 +1,134 @@
+package org.golde.discord.pumpbot;
+
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+import sx.blah.discord.handle.obj.IChannel;
+import sx.blah.discord.handle.obj.IPrivateChannel;
+import sx.blah.discord.handle.obj.IUser;
+
+public class UserState {
+
+	private boolean isAcceptingAlts = false;
+	private static final int TIMEOUT_SECONDS = 30;
+	private int sent = 0;
+	private static final String[] QUESTIONS = {
+			"Have you read the TOS? [y/n]",
+			"Do you agree to everything the TOS says? [y/n]",
+			"Do you agree to not try to get us into legal trouble if you get in trouble for giving us the account(s)? [y/n]",
+			"Do you agree to the fact that we/the TOS can change at any time without notifying users? [y/n]",
+	};
+
+	private int getAnswer(String t) {
+		t = t.toLowerCase();
+		if(t.contains("y")) {
+			return 1;
+		}
+		else if(t.contains("n")) {
+			return 0;
+		} else {
+			return -1;
+		}
+	}
+
+	public void recieved(IUser user, IPrivateChannel dm, String text) throws Exception {
+		if(sent > QUESTIONS.length) {
+			//No more yes or no questions, ask for alts
+			if(isAcceptingAlts) {
+				if(text.equalsIgnoreCase("done")) {
+					done(user.getLongID(), dm);
+					return;
+				}
+				parseAlt(user, dm, text);
+			} else {
+				dm.sendMessage("Great! Your elegiable to send alts! Please send me a hastebin link, a pastebin link, or paste the alts directly into this chat! Type \"done\" when you are finished.");
+				isAcceptingAlts = true;
+			}
+		} 
+		else {
+			//They responded to the question, now get their responce
+			int answer = getAnswer(text);
+			if(answer == -1) {
+				//Did not answer Yes or no
+				dm.sendMessage("Please answer with Yes or No, or wait " + TIMEOUT_SECONDS + " seconds to quit.");
+			}
+			else if(answer == 1){
+				//Yes
+				dm.sendMessage("OK! Next question!");
+				dm.sendMessage(QUESTIONS[sent++]);
+				sent++;
+			} 
+			else {
+				//No
+				dm.sendMessage("Sorry, but you are now currently ineligible to give accounts. Please try again later.");
+			}
+		}
+
+	}
+	
+	private void done(long userKey, IPrivateChannel dm) {
+		dm.sendMessage("Thanks for adding " + alts.size() + " to the pot! We will make note of this and you might have a higher change because you added alts :)");
+		Main.getPumpBot().addAltsToPump(alts);
+		Main.getPumpBot().userStates.remove(userKey);
+	}
+
+	private List<String> alts = new ArrayList<String>();
+	private void parseAlt(IUser user, IPrivateChannel dm, String text) throws Exception {
+		String[] lines = text.split("\\r?\\n");
+		for(String line:lines) {
+
+			if(line.startsWith("https") && line.contains("astebin.com/")) {
+				String inserted = line;
+				if(!line.contains(".com/raw/")) {
+					inserted = insertAfter(line, "https://pastebin.com/", "raw/");
+					inserted = insertAfter(inserted, "https://hastebin.com/", "raw/");
+				}
+				
+				URLConnection openConnection = new URL(inserted).openConnection();
+				openConnection.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:25.0) Gecko/20100101 Firefox/25.0");
+				InputStream is = openConnection.getInputStream();
+				Scanner sc = new Scanner(is);
+				while(sc.hasNext()) {
+				    String scanned = sc.next();
+				    if(isAlt(scanned)) {
+						alts.add(scanned);
+					}
+				}
+				sc.close();
+			}
+			else {
+				if(isAlt(line)) {
+					alts.add(line);
+				}
+			}
+		}
+		dm.sendMessage(alts.size() + " added so far! Type in \"done\" or wait " + TIMEOUT_SECONDS + " seconds to finish.");
+	}
+	
+	private boolean isAlt(String line) {
+		return (line.contains(":") && line.length() > 10);
+	}
+
+	private String insertAfter(String before, String afterThis, String insert)
+	{
+		int index = before.indexOf(afterThis);
+		if (index < 0) 
+			return before;
+		index += afterThis.length();
+		return before.substring(0, index) + insert + before.substring(index);
+	}
+
+	public void begin(IChannel dm) {
+		dm.sendMessage(QUESTIONS[0]);
+		sent++;
+	}
+
+	public void tick() {
+		
+	}
+
+}
