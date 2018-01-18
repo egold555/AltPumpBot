@@ -27,7 +27,7 @@ public abstract class DiscordBot {
 	private IGuild _guild;
 	private List<DiscordCommand> cmds = new ArrayList<DiscordCommand>();
 	private boolean botIsRunning = false;
-	private boolean botIsReady = false;
+	private volatile boolean botIsReady = false;
 
 	public DiscordBot(String token) {
 		logapi("Starting bot...");
@@ -73,22 +73,13 @@ public abstract class DiscordBot {
 		while(botIsRunning) {
 
 			if(botIsReady) {
+				logapi("Hello World");
 				onTick();
 				for(DiscordCommand command:cmds) {
 					command.tick();
 				}
 			} 
-			else { 
-				/*
-					Temporary fix because java is being a pain in the ass.
-					This else statement should not even need to exist.
-					For some reason, java does not realise that botIsReady has been changed unless it is doing something.
-					So, I just made it print blank characters to a line until its ready.
-					How I feel right now: https://www.youtube.com/watch?v=Nou5wWKKC1w
-					As Bill Nye once put it: "That just makes no fucking sense..."
-				 */
-				System.out.print(" ");
-			}
+			
 		}
 
 		shutdown();
