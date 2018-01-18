@@ -7,12 +7,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IPrivateChannel;
 import sx.blah.discord.handle.obj.IUser;
 
 public class UserState {
 
+	private final IUser USER;
+	private final IPrivateChannel DM;
+	
+	private long startTime = -1;
+	
 	private boolean isAcceptingAlts = false;
 	private static final int TIMEOUT_SECONDS = 30;
 	private int sent = 0;
@@ -22,6 +26,16 @@ public class UserState {
 			"Do you agree to not try to get us into legal trouble if you get in trouble for giving us the account(s)? [y/n]",
 			"Do you agree to the fact that we/the TOS can change at any time without notifying users? [y/n]",
 	};
+	
+	public UserState(IUser user, IPrivateChannel dm) {
+		this.USER = user;
+		this.DM = dm;
+	}
+	
+	/*
+	 * Set user id long on begin, as well as DM channel
+	 * No need to pass it throughout functions
+	 */
 
 	private int getAnswer(String t) {
 		t = t.toLowerCase();
@@ -35,18 +49,20 @@ public class UserState {
 		}
 	}
 
-	public void recieved(IUser user, IPrivateChannel dm, String text) throws Exception {
+	public void recieved(String text) throws Exception {
+		startTime = System.currentTimeMillis();
 		if(sent > QUESTIONS.length) {
 			//No more yes or no questions, ask for alts
 			if(isAcceptingAlts) {
 				if(text.equalsIgnoreCase("done")) {
-					done(user.getLongID(), dm);
+					done();
 					return;
 				}
-				parseAlt(user, dm, text);
+				parseAlt(text);
 			} else {
-				dm.sendMessage("Great! Your elegiable to send alts! Please send me a hastebin link, a pastebin link, or paste the alts directly into this chat! Type \"done\" when you are finished.");
+				DM.sendMessage("Great! Your elegiable to send alts! Please send me a hastebin link, a pastebin link, or paste the alts directly into this chat! Type \"done\" when you are finished.");
 				isAcceptingAlts = true;
+				
 			}
 		} 
 		else {
@@ -54,30 +70,30 @@ public class UserState {
 			int answer = getAnswer(text);
 			if(answer == -1) {
 				//Did not answer Yes or no
-				dm.sendMessage("Please answer with Yes or No, or wait " + TIMEOUT_SECONDS + " seconds to quit.");
+				DM.sendMessage("Please answer with Yes or No, or wait " + TIMEOUT_SECONDS + " seconds to quit.");
 			}
 			else if(answer == 1){
 				//Yes
-				dm.sendMessage("OK! Next question!");
-				dm.sendMessage(QUESTIONS[sent++]);
+				DM.sendMessage("OK! Next question!");
+				DM.sendMessage(QUESTIONS[sent++]);
 				sent++;
 			} 
 			else {
 				//No
-				dm.sendMessage("Sorry, but you are now currently ineligible to give accounts. Please try again later.");
+				DM.sendMessage("Sorry, but you are now currently ineligible to give accounts. Please try again later.");
+				Main.getPumpBot().userStates.remove(USER.getLongID());
 			}
 		}
-
 	}
 	
-	private void done(long userKey, IPrivateChannel dm) {
-		dm.sendMessage("Thanks for adding " + alts.size() + " to the pot! We will make note of this and you might have a higher change because you added alts :)");
-		Main.getPumpBot().addAltsToPump(alts);
-		Main.getPumpBot().userStates.remove(userKey);
+	private void done() {
+		DM.sendMessage("Thanks for adding " + alts.size() + " to the pump!");
+		Main.getPumpBot().addAltsToPump(alts, USER.getLongID());
+		Main.getPumpBot().userStates.remove(USER.getLongID());
 	}
 
 	private List<String> alts = new ArrayList<String>();
-	private void parseAlt(IUser user, IPrivateChannel dm, String text) throws Exception {
+	private void parseAlt(String text) throws Exception {
 		String[] lines = text.split("\\r?\\n");
 		for(String line:lines) {
 
@@ -106,7 +122,7 @@ public class UserState {
 				}
 			}
 		}
-		dm.sendMessage(alts.size() + " added so far! Type in \"done\" or wait " + TIMEOUT_SECONDS + " seconds to finish.");
+		DM.sendMessage(alts.size() + " added so far! Type in \"done\" or wait " + TIMEOUT_SECONDS + " seconds to finish.");
 	}
 	
 	private boolean isAlt(String line) {
@@ -122,13 +138,24 @@ public class UserState {
 		return before.substring(0, index) + insert + before.substring(index);
 	}
 
-	public void begin(IChannel dm) {
-		dm.sendMessage(QUESTIONS[0]);
+	public void begin() {
+		DM.sendMessage(QUESTIONS[0]);
 		sent++;
+	}
+	
+	private void timesUp() {
+		DM.sendMessage("Timed out.");
+		Main.getPumpBot().userStates.remove(USER.getLongID());
 	}
 
 	public void tick() {
-		
+		if(startTime != -1) {
+			long estimatedTime = System.currentTimeMillis() - startTime;
+			if(estimatedTime > TIMEOUT_SECONDS) {
+				timesUp();
+				startTime = -1;
+			}
+		}
 	}
 
 }
