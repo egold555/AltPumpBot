@@ -16,6 +16,7 @@ import sx.blah.discord.handle.obj.IMessage;
 import sx.blah.discord.handle.obj.IPrivateChannel;
 import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.handle.obj.IVoiceChannel;
+import sx.blah.discord.util.RateLimitException;
 import sx.blah.discord.util.audio.AudioPlayer;
 
 public abstract class DiscordBot {
@@ -27,52 +28,66 @@ public abstract class DiscordBot {
 	private List<DiscordCommand> cmds = new ArrayList<DiscordCommand>();
 	private boolean botIsRunning = false;
 	private boolean botIsReady = false;
-	
+
 	public DiscordBot(String token) {
 		logapi("Starting bot...");
 		ClientBuilder clientBuilder = new ClientBuilder(); 
 		clientBuilder.withToken(token); 
 		_client = clientBuilder.login();
 		_dispatcher = _client.getDispatcher();
-		
+
 		_dispatcher.registerListener(this);
-		
+
 		if(_client != null && _dispatcher != null) {
 			botIsRunning = true;
 		}
-		
+
 		final Thread mainThread = Thread.currentThread();
 		Runtime.getRuntime().addShutdownHook(new Thread() {
-		    public void run() {
-		        botIsRunning = false;
-		        try {
+			public void run() {
+				botIsRunning = false;
+				try {
 					mainThread.join();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-		    }
+			}
 		});
-		
+
 		try {
 			registerCommands(cmds);
 			//cmds.add(new EricCommand());
 		} catch (DiscordAPIException e) {
 			e.printStackTrace();
 		}
-		
+
 		for(DiscordCommand cmd:cmds) {
 			_dispatcher.registerListener(cmd);
 		}
 		logapi("Logging in..");
-		
+
 	}
-	
+
 	public final void run() {
+		logapi("Run called!");
 		while(botIsRunning) {
+
 			if(botIsReady) {
+				onTick();
 				for(DiscordCommand command:cmds) {
 					command.tick();
 				}
+			} 
+			else { 
+				/*
+					Temporary fix because java is being a pain in the ass.
+					This else statement should not even need to exist.
+					For some reason, java does not realise that botIsReady has been changed unless it is doing something.
+					So, I just made it print blank characters to a line until its ready.
+					How I feel right now: https://www.youtube.com/watch?v=Nou5wWKKC1w
+					As Bill Nye once put it: "That just makes no fucking sense..."
+				 */
+				System.out.print(" ");
 			}
 		}
 
@@ -84,7 +99,7 @@ public abstract class DiscordBot {
 	public abstract void onTick();
 	public abstract void onMessage(IUser user, IChannel channel, IMessage message);
 	public abstract void onShutdown();
-	
+
 	public final void shutdown() {
 		for(IVoiceChannel channel : _client.getConnectedVoiceChannels()) {
 			channel.leave();
@@ -99,7 +114,7 @@ public abstract class DiscordBot {
 		_client.logout();
 		System.exit(0);
 	}
-	
+
 	@EventSubscriber
 	public final void onReady(ReadyEvent event) {
 		try {
@@ -111,17 +126,17 @@ public abstract class DiscordBot {
 			logapi("                  No  Permissions: https://discordapp.com/oauth2/authorize?client_id=INSERT_CLIENT_ID_HERE&scope=bot&permissions=0");
 			shutdown();
 		}
-		
+
 
 		for(DiscordCommand command:cmds) {
 			command.setup(this);
 			command.onReady();
 		}
-		
+
 		_client.online();
-		
+
 		logapi("Enabled!");
-		
+
 		botIsReady = true;
 		onReady();
 	}
@@ -150,58 +165,64 @@ public abstract class DiscordBot {
 				}
 
 			} else {
-				onMessage(user, channel, message);
+				try {
+					onMessage(user, channel, message);
+				}
+				catch(RateLimitException e) {
+					logapi("Rate limit exceeded");
+					e.printStackTrace();
+				}
 			}
 		}
 		catch (Exception e){
 			e.printStackTrace();
 		}
 	}
-	
-	
-	
+
+
+
 	public final IPrivateChannel getDMWithUser(IUser user) {
 		return _client.getOrCreatePMChannel(user);
 	}
-	
+
 	public final String getNicknameForUser(IUser user) {
 		return user.getNicknameForGuild(_guild);
 	}
-	
+
 	public final void setUsername(String name) {
 		_client.changeUsername(name);
 	}
-	
+
 	public final void setPlaying(String msg) {
 		_client.changePlayingText(msg);
 	}
-	
+
 	public final AudioPlayer getAudioPlayer() {
 		return AudioPlayer.getAudioPlayerForGuild(_guild);
 	}
-	
+
 	public final String getPrefix() {
 		return prefix;
 	}
-	
+
 	public final void setPrefix(String prefix) {
 		this.prefix = prefix;
 	}
-	
+
 	public final IGuild getDiscordServer() {
 		return _guild;
 	}
-	
+
 	public final IDiscordClient getClient() {
 		return _client;
 	}
-	
-	
+
+
 	//MiscUtil
 	private final void logapi(String msg) {
 		System.out.println("[DiscordBotAPI] " + msg);
 	}
-	
+
 	public final void log(String msg) {
 		System.out.println("[DiscordBot] " + msg);
 	}

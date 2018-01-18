@@ -1,6 +1,8 @@
 package org.golde.discord.pumpbot;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
@@ -81,7 +83,7 @@ public class UserState {
 			else {
 				//No
 				DM.sendMessage("Sorry, but you are now currently ineligible to give accounts. Please try again later.");
-				Main.getPumpBot().userStates.remove(USER.getLongID());
+				remove();
 			}
 		}
 	}
@@ -89,11 +91,11 @@ public class UserState {
 	private void done() {
 		DM.sendMessage("Thanks for adding " + alts.size() + " to the pump!");
 		Main.getPumpBot().addAltsToPump(alts, USER.getLongID());
-		Main.getPumpBot().userStates.remove(USER.getLongID());
+		remove();
 	}
 
 	private List<String> alts = new ArrayList<String>();
-	private void parseAlt(String text) throws Exception {
+	private void parseAlt(String text) {
 		String[] lines = text.split("\\r?\\n");
 		for(String line:lines) {
 
@@ -103,18 +105,25 @@ public class UserState {
 					inserted = insertAfter(line, "https://pastebin.com/", "raw/");
 					inserted = insertAfter(inserted, "https://hastebin.com/", "raw/");
 				}
-				
-				URLConnection openConnection = new URL(inserted).openConnection();
-				openConnection.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:25.0) Gecko/20100101 Firefox/25.0");
-				InputStream is = openConnection.getInputStream();
-				Scanner sc = new Scanner(is);
-				while(sc.hasNext()) {
-				    String scanned = sc.next();
-				    if(isAlt(scanned)) {
-						alts.add(scanned);
+				try {
+					URLConnection openConnection = new URL(inserted).openConnection();
+					openConnection.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:25.0) Gecko/20100101 Firefox/25.0");
+					InputStream is = openConnection.getInputStream();
+					Scanner sc = new Scanner(is);
+					while(sc.hasNext()) {
+					    String scanned = sc.next();
+					    if(isAlt(scanned)) {
+							alts.add(scanned);
+						}
 					}
+					sc.close();
+				} 
+				catch (MalformedURLException e) {
+					DM.sendMessage("That is not a vallid url, or something went wrong.. ");
+				} 
+				catch (IOException e) {
+					DM.sendMessage("That website didn't work. It returned a " + e.toString());
 				}
-				sc.close();
 			}
 			else {
 				if(isAlt(line)) {
@@ -145,17 +154,22 @@ public class UserState {
 	
 	private void timesUp() {
 		DM.sendMessage("Timed out.");
+		remove();
+	}
+	
+	private void remove() {
 		Main.getPumpBot().userStates.remove(USER.getLongID());
 	}
 
 	public void tick() {
-		if(startTime != -1) {
+		/*if(startTime != -1) {
 			long estimatedTime = System.currentTimeMillis() - startTime;
-			if(estimatedTime > TIMEOUT_SECONDS) {
+			Main.getPumpBot().log("ETA: " + estimatedTime);
+			if(estimatedTime < TIMEOUT_SECONDS) {
 				timesUp();
 				startTime = -1;
 			}
-		}
+		}*/
 	}
 
 }

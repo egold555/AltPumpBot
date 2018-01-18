@@ -6,6 +6,7 @@ public class Main {
 	
 	public static void main(String[] args) {
 		bot = new PumpBot();
+		System.out.println("Calling run!");
 		bot.run();
 	}
 	

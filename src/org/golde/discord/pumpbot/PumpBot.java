@@ -48,10 +48,8 @@ public class PumpBot extends DiscordBot {
 					userState.recieved(msg.getContent());
 				} catch(Exception e) {
 					String ex = exceptionToString(e);
-					channel.sendMessage("Bug! Please report this to @Eric Golde");
-					channel.sendMessage(ex);
-					CHANNEL_DEBUG.sendMessage("Bug!");
-					CHANNEL_DEBUG.sendMessage(ex);
+					channel.sendMessage("Bug! Please report this to @Eric Golde\n" +ex);
+					CHANNEL_DEBUG.sendMessage("Bug!\n" + ex);
 				}
 				
 			}
@@ -65,7 +63,7 @@ public class PumpBot extends DiscordBot {
 		CHANNEL_DEBUG = getClient().getChannelByID(402680152888442881L);
 		CHANNEL_ANNOUNCEMENTS = getClient().getChannelByID(402661048106221569L);
 		CHANNEL_DEBUG.sendMessage("Enabled: " + new Date());
-		
+		log("Ready!");
 	}
 
 	@Override
@@ -107,7 +105,7 @@ public class PumpBot extends DiscordBot {
 		
 		List<IUser> users = getDiscordServer().getUsers();
 		IUser drawnUser = users.get(RANDOM.nextInt(users.size()));
-		while (isAdmin(drawnUser)) {
+		while (isAdmin(drawnUser) || drawnUser.isBot()) {
 			drawnUser = users.get(RANDOM.nextInt(users.size()));
 		}
 		
