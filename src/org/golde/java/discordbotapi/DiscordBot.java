@@ -73,7 +73,6 @@ public abstract class DiscordBot {
 		while(botIsRunning) {
 
 			if(botIsReady) {
-				logapi("Hello World");
 				onTick();
 				for(DiscordCommand command:cmds) {
 					command.tick();

@@ -15,6 +15,9 @@ import org.golde.java.discordbotapi.DiscordAPIException;
 import org.golde.java.discordbotapi.DiscordBot;
 import org.golde.java.discordbotapi.DiscordCommand;
 
+import sx.blah.discord.api.events.EventSubscriber;
+import sx.blah.discord.handle.impl.events.guild.member.UserJoinEvent;
+import sx.blah.discord.handle.impl.events.guild.member.UserLeaveEvent;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IGuild;
 import sx.blah.discord.handle.obj.IMessage;
@@ -25,11 +28,13 @@ import sx.blah.discord.handle.obj.IUser;
 public class PumpBot extends DiscordBot {
 	
 	public HashMap<Long, UserState> userStates = new HashMap<Long, UserState>();
-	private List<String> pot = new ArrayList<String>();
+	public List<String> pot = new ArrayList<String>();
 	private final Random RANDOM = new Random();
 	
-	private IChannel CHANNEL_DEBUG;
-	private IChannel CHANNEL_ANNOUNCEMENTS;
+	public IChannel CHANNEL_DEBUG;
+	public IChannel CHANNEL_ANNOUNCEMENTS;
+	public IChannel CHANNEL_LOUNGE;
+	public IChannel CHANNEL_PUMP;
 	
 	public PumpBot() {
 		super(BotConstants.TOKEN);
@@ -60,6 +65,8 @@ public class PumpBot extends DiscordBot {
 
 	@Override
 	public void onReady() {
+		CHANNEL_PUMP = getClient().getChannelByID(402661048106221569L);
+		CHANNEL_LOUNGE = getClient().getChannelByID(402316038706036737L);
 		CHANNEL_DEBUG = getClient().getChannelByID(402680152888442881L);
 		CHANNEL_ANNOUNCEMENTS = getClient().getChannelByID(402661048106221569L);
 		CHANNEL_DEBUG.sendMessage("Enabled: " + new Date());
@@ -126,7 +133,7 @@ public class PumpBot extends DiscordBot {
 
 	@Override
 	public void onInit() {
-		getEventDispatcher().registerListener(this);
+		//getEventDispatcher().registerListener(this);
 	}
 
 }
