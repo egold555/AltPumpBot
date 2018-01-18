@@ -65,7 +65,7 @@ public abstract class DiscordBot {
 			_dispatcher.registerListener(cmd);
 		}
 		logapi("Logging in..");
-
+		onInit();
 	}
 
 	public final void run() {
@@ -90,7 +90,8 @@ public abstract class DiscordBot {
 	public abstract void onTick();
 	public abstract void onMessage(IUser user, IChannel channel, IMessage message);
 	public abstract void onShutdown();
-
+	public abstract void onInit();
+	
 	public final void shutdown() {
 		for(IVoiceChannel channel : _client.getConnectedVoiceChannels()) {
 			channel.leave();
@@ -206,6 +207,10 @@ public abstract class DiscordBot {
 
 	public final IDiscordClient getClient() {
 		return _client;
+	}
+	
+	public EventDispatcher getEventDispatcher() {
+		return _dispatcher;
 	}
 
 

@@ -124,4 +124,9 @@ public class PumpBot extends DiscordBot {
 		return user.getRolesForGuild(server).contains(server.getRoleByID(403266831428747275L));
 	}
 
+	@Override
+	public void onInit() {
+		getEventDispatcher().registerListener(this);
+	}
+
 }
